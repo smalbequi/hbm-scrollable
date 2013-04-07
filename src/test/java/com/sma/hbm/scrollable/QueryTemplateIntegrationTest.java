@@ -14,15 +14,14 @@ import org.junit.Before;
 import org.junit.Test;
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
-import com.sma.hbm.scrollable.QueryInitializer;
-import com.sma.hbm.scrollable.QueryResults;
-import com.sma.hbm.scrollable.QueryTemplate;
 
 public class QueryTemplateIntegrationTest {
 
     private SessionFactory sessionFactory;
 
     private QueryTemplate<Person> queryTemplate;
+
+    private PaginatedQueryTemplate<Person, String> paginatedQueryTemplate;
 
     private Transaction transaction;
 
@@ -41,39 +40,42 @@ public class QueryTemplateIntegrationTest {
 
         sessionFactory = configuration.buildSessionFactory();
 
-        queryTemplate = new QueryTemplate<>(sessionFactory);
+        queryTemplate = new QueryTemplate<Person>(sessionFactory);
+        paginatedQueryTemplate = new PaginatedQueryTemplate<Person, String>(sessionFactory);
 
         sessionFactory.openSession();
         transaction = sessionFactory.getCurrentSession().beginTransaction();
         // Insert persons in database
-        for (long i = 0; i < 16; i++) {
+        for (long i = 0; i <= 15; i++) {
             sessionFactory.getCurrentSession().save(new Person("name" + i));
         }
     }
 
     @Test
     public void executeQuery_based_only_on_db_fetching_feature() throws Exception {
-        Person person;
-
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
-            try (QueryResults<Person> queryResults = queryTemplate.executeQuery("from Person p where p.name like :name", newArrayList("p"), //
+            queryTemplate.executeQuery("from Person p where p.name like :name order by name asc", newArrayList("p"), //
                     new QueryInitializer() {
 
                         @Override
                         public void setQueryParameters(Query query) {
                             query.setString("name", "name1%");
                         }
-                    }, 3)) {
+                    }, new Function<Person, Void>() {
 
-                try {
-                    while ((person = queryResults.next()) != null) {
-                        outputStream.write(person.getName().getBytes());
-                    }
-                } catch (IOException e) {
-                    throw Throwables.propagate(e);
-                }
-                assertThat(new String(outputStream.toByteArray())).isEqualTo("name1name10name11name12name13name14name15");
-            }
+                        @Override
+                        public Void apply(Person person) {
+                            // Do something with person
+                            try {
+                                System.out.println(person.getName());
+                                outputStream.write(person.getName().getBytes());
+                                return null;
+                            } catch (IOException e) {
+                                throw Throwables.propagate(e);
+                            }
+                        }
+                    }, 3);
+            assertThat(new String(outputStream.toByteArray())).isEqualTo("name1name10name11name12name13name14name15");
         }
     }
 
@@ -81,22 +83,34 @@ public class QueryTemplateIntegrationTest {
     public void executeQuery_based_on_pagination() throws Exception {
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
 
-            queryTemplate.executeQuery("from Person p where p.name like :name", newArrayList("p"), //
-                    new QueryInitializer() {
+            paginatedQueryTemplate.executeQuery("from Person p where p.name like :name and p.name > :lastValue order by name asc",
+                    newArrayList("p"),//
+                    new PaginatedQueryInitializer<String>() {
 
                         @Override
                         public void setQueryParameters(Query query) {
                             query.setString("name", "name1%");
                         }
-                    },//
-                    new Function<Person, Void>() {
 
                         @Override
-                        public Void apply(Person person) {
-                            // Do something with person
+                        public String getOrderedQueryParameterFirstValue() {
+                            return "";
+                        }
+
+                        @Override
+                        public void setOrderedQueryParameter(Query query, String value) {
+                            query.setString("lastValue", value);
+                        }
+                    },//
+                    new Function<Person, String>() {
+
+                        @Override
+                        public String apply(Person person) {
+                            // Do something with person and return ordered value
                             try {
+                                System.out.println(person.getName());
                                 outputStream.write(person.getName().getBytes());
-                                return null;
+                                return person.getName();
                             } catch (IOException e) {
                                 throw Throwables.propagate(e);
                             }

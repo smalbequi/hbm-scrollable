@@ -20,7 +20,7 @@ public class QueryResults<T> implements AutoCloseable {
     }
 
     /**
-     * Return the next entity or null if no more entity and clear the session when fetch size threshold reached
+     * Return the next entity or null if no more entity, and clear the session when fetch size threshold reached
      * 
      * @return the next entity or null if no more entity
      */
