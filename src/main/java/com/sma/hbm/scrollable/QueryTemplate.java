@@ -17,7 +17,7 @@ import com.google.common.base.Function;
  * 
  * To avoid out of memory exception when playing with millions of rows (batches for example), one of the solutions is pagination.
  * 
- * This template based on Hibernate is easy to use and do this workaround for you (pagination, scrolling and clearing Hibernate session).
+ * In case of mysql use PaginatedQueryTemplate
  * 
  */
 
