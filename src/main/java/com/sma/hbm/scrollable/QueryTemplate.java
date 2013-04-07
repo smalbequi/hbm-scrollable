@@ -35,6 +35,10 @@ public class QueryTemplate<T> {
         return sessionFactory;
     }
 
+    protected Session getSession() {
+        return sessionFactory.getCurrentSession();
+    }
+
     /**
      * Don't use this method with mysql
      * 
@@ -63,13 +67,12 @@ public class QueryTemplate<T> {
      * 
      */
     public QueryResults<T> executeQuery(String hql, Iterable<String> aliases, QueryInitializer initializer, int fetchSize) {
-        Session session = sessionFactory.getCurrentSession();
 
-        Query query = createQuery(hql, aliases, initializer, fetchSize, session);
+        Query query = createQuery(hql, aliases, initializer, fetchSize);
 
         ScrollableResults scrollableResults = query.scroll(ScrollMode.FORWARD_ONLY);
 
-        return new QueryResults<T>(scrollableResults, session, fetchSize);
+        return new QueryResults<T>(scrollableResults, getSession(), fetchSize);
     }
 
     /**
@@ -92,8 +95,8 @@ public class QueryTemplate<T> {
         }
     }
 
-    protected Query createQuery(String hql, Iterable<String> aliases, QueryInitializer initializer, int fetchSize, Session session) {
-        Query query = session.createQuery(hql);
+    protected Query createQuery(String hql, Iterable<String> aliases, QueryInitializer initializer, int fetchSize) {
+        Query query = getSession().createQuery(hql);
 
         query.setFetchSize(fetchSize);
         query.setReadOnly(true);

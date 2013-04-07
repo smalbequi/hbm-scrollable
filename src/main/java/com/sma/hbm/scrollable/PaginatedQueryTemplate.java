@@ -3,7 +3,6 @@ package com.sma.hbm.scrollable;
 import org.hibernate.Query;
 import org.hibernate.ScrollMode;
 import org.hibernate.ScrollableResults;
-import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import com.google.common.base.Function;
 
@@ -53,9 +52,7 @@ public class PaginatedQueryTemplate<T, E> extends QueryTemplate<T> {
     public void executeQuery(String hql, Iterable<String> aliases, PaginatedQueryInitializer<E> initializer, Function<T, E> function,
             int fetchSize) {
 
-        Session session = getSessionFactory().getCurrentSession();
-
-        Query query = createQuery(hql, aliases, initializer, fetchSize, session).setMaxResults(fetchSize);
+        Query query = createQuery(hql, aliases, initializer, fetchSize).setMaxResults(fetchSize);
 
         boolean scroll = true;
         E lastOrderedValue = initializer.getOrderedQueryParameterFirstValue();
@@ -65,7 +62,7 @@ public class PaginatedQueryTemplate<T, E> extends QueryTemplate<T> {
                 initializer.setOrderedQueryParameter(query, lastOrderedValue);
             }
             ScrollableResults scrollableResults = query.scroll(ScrollMode.FORWARD_ONLY);
-            try (QueryResults<T> queryResults = new QueryResults<T>(scrollableResults, session, fetchSize)) {
+            try (QueryResults<T> queryResults = new QueryResults<T>(scrollableResults, getSession(), fetchSize)) {
                 int count = 0;
                 T entity;
                 while ((entity = queryResults.next()) != null) {
