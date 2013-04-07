@@ -28,7 +28,7 @@ public class QueryResults<T> implements AutoCloseable {
     public T next() {
         T entity = scrollableResults.next() ? (T) scrollableResults.get(0) : null;
 
-        if (entity == null || (++count % fetchSize == 0)) {
+        if (entity != null && (++count % fetchSize == 0)) {
             session.clear();
         }
 
@@ -37,6 +37,7 @@ public class QueryResults<T> implements AutoCloseable {
 
     @Override
     public void close() {
+        session.clear();
         scrollableResults.close();
     }
 
